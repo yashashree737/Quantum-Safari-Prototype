@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schrödinger's Cave: Resonance Lab</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #050508; color: #e0e0e0; overflow-x: hidden; }
+        #game-container { display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        
+        #ui-layout { display: flex; gap: 20px; max-width: 1450px; width: 100%; justify-content: center; align-items: flex-start; }
+        #canvas-wrapper { position: relative; border: 2px solid #333; border-radius: 10px; background: #000; box-shadow: 0 0 30px rgba(0, 212, 255, 0.1); flex-shrink: 0; }
+        
+        #sidebar { width: 500px; background: rgba(20, 20, 35, 0.95); padding: 25px; border-radius: 10px; border: 1px solid #444; height: 85vh; overflow-y: auto; scrollbar-width: thin; }
+        
+        .section-header { color: #a78bfa; border-bottom: 2px solid #a78bfa; margin: 25px 0 10px 0; padding-bottom: 5px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        .math-block { font-family: 'Courier New', monospace; color: #00d4ff; background: rgba(0,0,0,0.6); padding: 12px; border-radius: 5px; margin: 10px 0; border-left: 4px solid #00d4ff; font-size: 1.1em; }
+        
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.85em; background: rgba(255,255,255,0.03); }
+        th, td { border: 1px solid #444; padding: 8px; text-align: left; }
+        th { background: rgba(167, 139, 250, 0.2); color: #a78bfa; }
+
+        .btn { padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; width: 100%; margin-bottom: 10px; text-transform: uppercase; }
+        .btn-primary { background: rgba(0, 212, 255, 0.1); color: #00d4ff; border: 1px solid #00d4ff; }
+        .btn-primary:hover { background: rgba(0, 212, 255, 0.3); }
+        .btn-measure { background: #00d4ff; color: #000; box-shadow: 0 0 15px rgba(0, 212, 255, 0.4); }
+        .active-n { background: #00d4ff !important; color: #000 !important; }
+        
+        #briefing-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 420px; background: #1a1a2e; border: 2px solid #00d4ff; padding: 25px; border-radius: 15px; z-index: 100; display: none; box-shadow: 0 0 50px rgba(0, 212, 255, 0.6); }
+        .success-box { display: none; background: rgba(0, 255, 100, 0.1); border: 1px solid #0f6; padding: 15px; border-radius: 8px; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <div id="briefing-popup">
+        <h2 style="color: #00d4ff; margin-bottom: 10px;">Quantum Resonance!</h2>
+        <p>Target Resolved! At <b>n=4</b>, the antinode aligns perfectly with the bear's hidden coordinates. You have successfully quantized the chamber.</p>
+        <button class="btn btn-primary" style="margin-top:15px;" onclick="closePopup()">ACKNOWLEDGE</button>
+    </div>
+
+    <div id="game-container">
+        <h1 style="color: #00d4ff; margin-bottom: 20px; letter-spacing: 3px;">THE RESONANCE CHAMBER</h1>
+
+        <div id="ui-layout">
+            <div id="canvas-wrapper">
+                <div style="position: absolute; top: 15px; left: 15px; pointer-events: none;">
+                    <h3 id="mode-text" style="color: #00d4ff; font-family: monospace;">STATE: ψₙ(x)</h3>
+                    <p id="node-counter" style="color: #ff4757; font-size: 0.9em; font-weight: bold;"></p>
+                </div>
+            </div>
+
+            <div id="sidebar">
+                <div class="section-header" style="margin-top:0;">WHAT YOU SEE</div>
+                <table>
+                    <tr><th>Element</th><th>Meaning</th></tr>
+                    <tr><td><b>Cave walls</b></td><td>Infinite potential well — particle cannot escape</td></tr>
+                    <tr><td><b>Standing waves</b></td><td>Allowed energy states (quantum numbers n = 1, 2, 3...)</td></tr>
+                    <tr><td><b>Nodes</b></td><td>Points where particle probability is zero</td></tr>
+                    <tr><td><b>Antinodes</b></td><td>Points where particle is most likely found</td></tr>
+                    <tr><td><b>Glow intensity</b></td><td>Probability density |ψ|² — brighter = more likely</td></tr>
+                </table>
+
+                <div class="section-header">SECTION 1: EQUATIONS EXPLAINED</div>
+                <p><b>Energy Quantization</b></p>
+                <div class="math-block">Eₙ = n²π²ℏ² / 2mL²</div>
+                <table>
+                    <tr><th>Symbol</th><th>Meaning</th></tr>
+                    <tr><td>Eₙ</td><td>Energy of level n (discrete values only)</td></tr>
+                    <tr><td>n</td><td>Quantum number (1, 2, 3...)</td></tr>
+                    <tr><td>ℏ</td><td>Reduced Planck's constant</td></tr>
+                    <tr><td>m</td><td>Particle mass</td></tr>
+                    <tr><td>L</td><td>Box width (cave size)</td></tr>
+                </table>
+                <p style="font-size: 0.85em; line-height: 1.4;"><i>How it applies:</i> Energy is not continuous. E₁ = ground state, E₂ = 4×E₁, E₃ = 9×E₁.</p>
+
+                <p style="margin-top:15px;"><b>Wave Function</b></p>
+                <div class="math-block">ψₙ(x) = √(2/L) · sin(nπx/L)</div>
+                <table>
+                    <tr><th>Symbol</th><th>Meaning</th></tr>
+                    <tr><td>ψₙ(x)</td><td>Wave function at position x</td></tr>
+                    <tr><td>√(2/L)</td><td>Normalization (total probability = 1)</td></tr>
+                    <tr><td>sin(nπx/L)</td><td>Standing wave pattern</td></tr>
+                </table>
+                <p style="font-size: 0.85em; line-height: 1.4;"><i>How it applies:</i> Describes quantum state. |ψ|² gives probability of finding particle at x.</p>
+
+                <div class="section-header">SECTION 2: HOW TO EXPLORE</div>
+                <table>
+                    <tr><th>Control</th><th>Action</th><th>Discovery</th></tr>
+                    <tr><td><b>Mode (n)</b></td><td>Switch n</td><td>See pattern changes</td></tr>
+                    <tr><td><b>Width (L)</b></td><td>Resize</td><td>Watch energy shift</td></tr>
+                    <tr><td><b>ψ / |ψ|²</b></td><td>Toggle</td><td>Wave → Prob. cloud</td></tr>
+                    <tr><td><b>Probes</b></td><td>Fire</td><td>Collapse wave to spot</td></tr>
+                </table>
+
+                <div class="section-header">SECTION 3: THE CHALLENGE</div>
+                <p style="color: #ffcc00; font-weight: bold;">"Find the Bear"</p>
+                <p style="font-size: 0.9em; margin-bottom: 10px;">The bear hides where probability is highest. Select the correct <b>n</b> so the glow reveals the bear.</p>
+                <p style="font-size: 0.85em; color: #8b8b9f;"><i>Hint: Match the antinode to the bear's position.</i></p>
+
+                <div class="success-box" id="success-box">
+                    <p style="color: #0f6; font-weight: bold;">🎯 TARGET RESOLVED: BEAR FOUND</p>
+                </div>
+
+                <div class="section-header">SECTION 4: WHY THIS MATTERS</div>
+                <ul style="font-size: 0.85em; padding-left: 20px; line-height: 1.6;">
+                    <li><b>Classical:</b> Particle has any energy, can be anywhere.</li>
+                    <li><b>Quantum:</b> Confinement creates <b>quantization</b>.</li>
+                    <li><b>Real-world:</b> Electrons in atoms, semiconductor devices.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; width: 100%; max-width: 1200px; margin-top: 20px; background: rgba(20,20,35,0.8); padding: 20px; border-radius: 10px; border: 1px solid #333;">
+            <div>
+                <label style="font-size: 0.8em; color: #8b8b9f;">QUANTUM NUMBER (n)</label>
+                <div style="display: flex; gap: 5px; margin-top: 10px;">
+                    <button class="btn btn-primary n-btn" onclick="setN(1)">1</button>
+                    <button class="btn btn-primary n-btn" onclick="setN(2)">2</button>
+                    <button class="btn btn-primary n-btn" onclick="setN(3)">3</button>
+                    <button class="btn btn-primary n-btn" onclick="setN(4)">4</button>
+                    <button class="btn btn-primary n-btn" onclick="setN(5)">5</button>
+                </div>
+            </div>
+            <div>
+                <label style="font-size: 0.8em; color: #8b8b9f;">CHAMBER LENGTH (L) Å</label>
+                <input type="range" id="widthSlider" min="300" max="700" value="500" style="width: 100%; margin: 15px 0; accent-color: #00d4ff;">
+                <button class="btn btn-primary" style="font-size: 0.75em;" onclick="toggleProb()">Toggle Wave / Probability</button>
+            </div>
+            <div>
+                <label style="font-size: 0.8em; color: #8b8b9f;">MEASUREMENT</label>
+                <button class="btn btn-measure" onclick="fireProbe()">✨ FIRE QUANTUM PROBES</button>
+            </div>
+        </div>
+    </div>
+
+    
+
+    <script>
+        let n = 1; let L_val = 500; let showProb = false; let probeParticles = [];
+        let bearX = 0.875; let successTriggered = false;
+
+        function setup() { let cnv = createCanvas(800, 500); cnv.parent('canvas-wrapper'); updateNButtons(); }
+
+        function draw() {
+            background(5, 5, 12);
+            L_val = select('#widthSlider').value();
+            let startX = (width - L_val) / 2;
+            
+            // Draw Walls
+            stroke(0, 212, 255, 150); strokeWeight(3);
+            line(startX, 60, startX, height-60); line(startX + L_val, 60, startX + L_val, height-60);
+            
+            drawBear(startX);
+            drawWaveDisplay(startX);
+            drawProbeHits(startX);
+            drawNodes(startX);
+            
+            select('#node-counter').html(`NODES DETECTED: ${n-1}`);
+            checkSuccess();
+        }
+
+        function drawWaveDisplay(startX) {
+            push(); translate(startX, height/2); noFill();
+            if (showProb) {
+                stroke(255, 204, 0); strokeWeight(3);
+                beginShape();
+                for (let x = 0; x <= L_val; x++) {
+                    let psi = Math.sin((n * PI * x) / L_val);
+                    vertex(x, -(psi * psi) * 120);
+                }
+                endShape();
+            } else {
+                stroke(0, 212, 255, 200); strokeWeight(2);
+                let time = frameCount * 0.08;
+                beginShape();
+                for (let x = 0; x <= L_val; x++) {
+                    let psi = Math.sin((n * PI * x) / L_val) * Math.sin(time);
+                    vertex(x, -psi * 90);
+                }
+                endShape();
+            }
+            pop();
+        }
+
+        function drawBear(startX) {
+            let bx = startX + (bearX * L_val);
+            push();
+            if (n === 4) {
+                stroke(0, 255, 255); strokeWeight(2); fill(0, 255, 255, 50);
+                drawingContext.shadowBlur = 20; drawingContext.shadowColor = 'cyan';
+            } else {
+                noStroke(); fill(100, 100, 120, 100);
+            }
+            circle(bx, height/2 + 30, 25); circle(bx, height/2 + 10, 18); 
+            circle(bx-8, height/2 + 2, 7); circle(bx+8, height/2 + 2, 7);
+            pop();
+        }
+
+        function drawNodes(startX) {
+            if (!showProb) return;
+            fill(255, 71, 87); noStroke();
+            for(let i=1; i<n; i++) { circle(startX + (i * L_val / n), height/2, 6); }
+        }
+
+        function fireProbe() {
+            for(let i=0; i<10; i++) {
+                let rx = random(0, 1);
+                if (random(0, 1) < Math.pow(Math.sin(n * PI * rx), 2)) {
+                    probeParticles.push({x: rx, life: 255});
+                }
+            }
+        }
+
+        function drawProbeHits(startX) {
+            for (let i = probeParticles.length - 1; i >= 0; i--) {
+                let p = probeParticles[i];
+                fill(255, p.life); noStroke();
+                circle(startX + (p.x * L_val), height/2 + 30, 4);
+                p.life -= 4; if (p.life <= 0) probeParticles.splice(i, 1);
+            }
+        }
+
+        function setN(val) { n = val; updateNButtons(); probeParticles = []; }
+
+        function updateNButtons() {
+            let btns = document.querySelectorAll('.n-btn');
+            btns.forEach((b, i) => {
+                if (i + 1 === n) b.classList.add('active-n');
+                else b.classList.remove('active-n');
+            });
+        }
+
+        function toggleProb() { 
+            showProb = !showProb; 
+            select('#mode-text').html(showProb ? "STATE: |ψₙ(x)|²" : "STATE: ψₙ(x)");
+        }
+
+        function checkSuccess() {
+            if (n === 4 && !successTriggered) {
+                successTriggered = true;
+                select('#success-box').style('display', 'block');
+                select('#briefing-popup').style('display', 'block');
+            } else if (n !== 4) {
+                successTriggered = false;
+                select('#success-box').style('display', 'none');
+            }
+        }
+
+        function closePopup() { select('#briefing-popup').style('display', 'none'); }
+    </script>
+</body>
+</html>

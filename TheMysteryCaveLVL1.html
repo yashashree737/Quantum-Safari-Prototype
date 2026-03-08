@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Cave Mystery</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #080810 100%);
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        #game-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 25px;
+            max-width: 1200px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 30px;
+            border-radius: 24px;
+            border: 1px solid rgba(0, 255, 255, 0.15);
+        }
+
+        /* Sidebar Styling */
+        #sidebar {
+            background: rgba(10, 10, 20, 0.9);
+            padding: 25px;
+            border-radius: 18px;
+            border-left: 4px solid #00d4ff;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        #sidebar h2 { 
+            color: #fff; 
+            font-size: 1.6rem; 
+            letter-spacing: 2px; 
+            margin-bottom: 20px; 
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        #sidebar h3 { color: #00d4ff; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1.5px; font-size: 1rem; }
+        .sidebar-section { margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .highlight { color: #00d4ff; font-weight: bold; }
+        .gold { color: #ffeb3b; font-weight: bold; }
+
+        /* Main Content Styling */
+        #main-content { display: flex; flex-direction: column; gap: 20px; justify-content: center; }
+
+        #canvas-wrapper {
+            background: #05050a;
+            border: 2px solid #222;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: inset 0 0 50px rgba(0,0,0,1);
+        }
+
+        /* Controls */
+        #controls {
+            display: flex;
+            gap: 15px;
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 15px;
+            justify-content: center;
+        }
+
+        .btn {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid #00d4ff;
+            color: #00d4ff;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn.active { background: #00d4ff; color: #05050a; box-shadow: 0 0 15px rgba(0, 212, 255, 0.4); }
+
+        @media (max-width: 900px) { #game-container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="sidebar">
+        <h2>The Cave Mystery</h2>
+        
+        <div class="sidebar-section">
+            <h3>How to Play</h3>
+            <p><span class="highlight">The Mystery:</span> A hidden quantum bear is trapped inside the cave. You cannot see it directly.</p>
+            <p><span class="highlight">Your Tool:</span>Throw particles to detect the bear’s shape.</p>
+            <p>• Large particles bounce.</p>
+            <p>• Small particles slightly reveal edges.</p>
+            <p>• Quantum highlight the complete outline of Quantum Bear.</p> 
+        </div>
+        
+        <div class="sidebar-section" style="border:none;">
+            <h3>Quantum Bear</h3>
+            <p>• Does not have one exact position until measured.</p>
+            <p>• It exists as a <span class="gold">probability wave</span> spread across the cave.</p>
+            <p>• It's shape appears as measurements accumulate.</p>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <div id="canvas-wrapper">
+            <div id="p5-holder"></div>
+        </div>
+
+        <div id="controls">
+            <button class="btn" id="btn-large" onclick="setMode('large')">Large Ball</button>
+            <button class="btn" id="btn-medium" onclick="setMode('medium')">Small Ball</button>
+            <button class="btn active" id="btn-quantum" onclick="setMode('quantum')">Quantum Particle</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let mode = 'quantum';
+    let particles = [];
+    let detectedPoints = [];
+    let borderAlpha = 0; 
+
+    function setup() {
+        let canvas = createCanvas(800, 480);
+        canvas.parent('p5-holder');
+    }
+
+    function draw() {
+        background(5, 5, 12);
+        
+        // Draw Cave Entrance effect
+        noStroke();
+        fill(0, 0, 0, 150);
+        rect(0, 0, 150, height);
+
+        drawDynamicBear();
+
+        for (let pt of detectedPoints) {
+            noStroke();
+            fill(0, 212, 255, pt.op);
+            circle(pt.x, pt.y, pt.sz);
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+
+            let d = dist(p.x, p.y, width/2 + 50, height/2);
+            
+            if (d < 85) { 
+                if (mode === 'quantum') {
+                    borderAlpha = lerp(borderAlpha, 255, 0.04);
+                    if (random() < 0.25) {
+                        detectedPoints.push({
+                            x: p.x + random(-4,4),
+                            y: p.y + random(-4,4),
+                            op: random(150, 255),
+                            sz: random(2, 5)
+                        });
+                    }
+                } else if (mode === 'medium') {
+                    borderAlpha = lerp(borderAlpha, 70, 0.02); 
+                    p.vx *= -1.1;
+                    p.x -= 5;
+                } else {
+                    p.vx *= -1.2;
+                    p.x -= 10;
+                }
+            }
+
+            noStroke();
+            fill(p.col);
+            if(mode === 'quantum') {
+                drawingContext.shadowBlur = 5;
+                drawingContext.shadowColor = 'cyan';
+            }
+            circle(p.x, p.y, p.w);
+            drawingContext.shadowBlur = 0;
+
+            if (p.x > width || p.x < -100) particles.splice(i, 1);
+        }
+
+        if (frameCount % 8 === 0) fire();
+    }
+
+    function drawDynamicBear() {
+        push();
+        translate(width/2 + 50, height/2);
+        
+        if (borderAlpha > 1) {
+            noFill();
+            stroke(0, 212, 255, borderAlpha);
+            strokeWeight(mode === 'quantum' ? 4 : 2);
+            drawingContext.shadowBlur = mode === 'quantum' ? 15 : 5;
+            drawingContext.shadowColor = 'cyan';
+            renderBearShapes(); 
+            drawingContext.shadowBlur = 0;
+        }
+
+        noStroke();
+        fill(45, 45, 55); 
+        renderBearShapes();
+        pop();
+    }
+
+    function renderBearShapes() {
+        circle(0, 35, 90);    
+        circle(0, -35, 65);   
+        circle(-25, -60, 22); 
+        circle(25, -60, 22);  
+    }
+
+    function fire() {
+        let py = height/2 + random(-130, 130);
+        let p = {
+            x: -20,
+            y: py,
+            vx: mode === 'large' ? 4 : (mode === 'medium' ? 7 : 11),
+            vy: random(-0.3, 0.3),
+            w: mode === 'large' ? 55 : (mode === 'medium' ? 18 : 6),
+            col: mode === 'large' ? color(220, 60, 60) : (mode === 'medium' ? color(100, 180, 255) : color(0, 255, 255))
+        };
+        particles.push(p);
+    }
+
+    function setMode(m) {
+        mode = m;
+        particles = [];
+        detectedPoints = [];
+        borderAlpha = 0; 
+        
+        document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-' + m).classList.add('active');
+    }
+</script>
+
+</body>
+</html>
